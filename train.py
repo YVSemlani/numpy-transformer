@@ -10,21 +10,46 @@ from tasks.reverse import generate_reverse_dataset, evaluate_reverse_task
 from tasks.pattern_recognition import generate_pattern_dataset, evaluate_pattern_task
 
 # Hyperparameters - Optimized for demonstration
-embedding_dim = 64 # 128 also works reasonably well with this config
+embedding_dim = 128 # 128 also works reasonably well with this config
 num_layers = 1
-vocab_size = 10
-seq_length = 4
+vocab_size = 3
+seq_length = 8
+START_TOKEN = vocab_size  # Use vocab_size as start token (e.g., 3 when vocab_size=3)
 batch_size = 16         # Smaller batches for more frequent updates
-learning_rate = 2e-3    # Reduced from 1e-2 to prevent overshooting
-num_epochs = 20
+# Learning rate schedule - start high and decay
+initial_learning_rate = 5e-3
+final_learning_rate = 1e-4
+learning_rate = initial_learning_rate  # Will be updated during training
+num_epochs = 100
 debug = False           # Set to True to enable debug output
 report_batch_freq = 200   # More frequent reporting for better demo visibility
 
-# Initialize the transformer with debug parameter
-model = Transformer(embedding_dim=embedding_dim, num_layers=num_layers, vocab_size=vocab_size, debug=debug)
+# Initialize the transformer with debug parameter - need extra vocab slot for start token
+model = Transformer(embedding_dim=embedding_dim, num_layers=num_layers, vocab_size=vocab_size+1, debug=debug)
 
 # Initialize loss function - USE THIS INSTEAD OF MSE
 loss_fn = CrossEntropyLoss()  # or SparseCrossEntropyLoss() for better memory efficiency
+
+def generate_sequence(model, encoder_input, max_length, start_token=START_TOKEN):
+    batch_size = encoder_input.shape[0]
+    
+    # Start with just the start token
+    decoder_input = np.full((batch_size, 1), start_token, dtype=np.int32)
+    
+    for _ in range(max_length):
+        # Get predictions for current sequence
+        predictions = model.forward(encoder_input, decoder_input)
+        
+        # Get the last predicted token
+        next_token = np.argmax(predictions[:, -1, :], axis=-1)
+        
+        # Append to decoder input for next iteration
+        decoder_input = np.concatenate([
+            decoder_input, 
+            next_token.reshape(-1, 1)
+        ], axis=1)
+    
+    return decoder_input[:, 1:]  # Remove start token
 
 def train_model(task_name="copy", enable_debug=False, batch_report_freq=10):
     """Train the model on a specific task
@@ -41,8 +66,8 @@ def train_model(task_name="copy", enable_debug=False, batch_report_freq=10):
     
     # Generate dataset based on task
     if task_name == "copy":
-        train_inputs, train_targets = generate_copy_dataset(seq_length, vocab_size, 10000)
-        test_inputs, test_targets = generate_copy_dataset(seq_length, vocab_size, 1000)
+        train_inputs, train_targets = generate_copy_dataset(seq_length, vocab_size, 1000)
+        test_inputs, test_targets = generate_copy_dataset(seq_length, vocab_size, 100)
         eval_fn = evaluate_copy_task
     elif task_name == "addition":
         train_inputs, train_targets = generate_addition_dataset(max_num=50, num_samples=1000)
@@ -84,8 +109,10 @@ def train_model(task_name="copy", enable_debug=False, batch_report_freq=10):
             
             # For sequence-to-sequence tasks, decoder input setup
             if len(batch_targets.shape) == 2:  # Sequence outputs
-                # For copy task: decoder starts with zeros (no teacher forcing)
-                decoder_inputs = np.zeros_like(batch_targets)
+                # Create decoder inputs by shifting targets right and adding start token
+                decoder_inputs = np.full((batch_size, batch_targets.shape[1]), START_TOKEN, dtype=np.int32)
+                decoder_inputs[:, 1:] = batch_targets[:, :-1]  # Shift right
+                # decoder_inputs[:, 0] is START_TOKEN
             else:  # Single token outputs (like addition)
                 decoder_inputs = np.zeros((batch_size, 1))  # Dummy input
 
@@ -105,7 +132,8 @@ def train_model(task_name="copy", enable_debug=False, batch_report_freq=10):
             grad = loss_fn.backward(predictions, batch_targets)
             model.backward(grad)
             
-            # Update parameters
+            # Update learning rate
+            learning_rate = initial_learning_rate * (1 - (epoch + batch_idx / num_batches) / num_epochs)
             model.update(lr=learning_rate)
             
             # Batch-level reporting
@@ -121,11 +149,14 @@ def train_model(task_name="copy", enable_debug=False, batch_report_freq=10):
         n = 2  # Number of random samples to evaluate
         random_indices = np.random.choice(len(test_inputs), n, replace=False)
         
-        test_predictions = model.forward(test_inputs[random_indices], 
-                                       np.zeros((n, test_targets.shape[-1] if len(test_targets.shape) > 1 else 1), dtype=np.int32))
-        
-        # argmax the test predictions
-        test_predictions = np.argmax(test_predictions, axis=-1)
+        # Use autoregressive generation for sequence tasks
+        if len(test_targets.shape) == 2:  # Sequence outputs
+            test_predictions = generate_sequence(model, test_inputs[random_indices], 
+                                               test_targets.shape[1], start_token=START_TOKEN)
+        else:  # Single token outputs (like addition)
+            test_predictions = model.forward(test_inputs[random_indices], 
+                                           np.zeros((n, 1), dtype=np.int32))
+            test_predictions = np.argmax(test_predictions, axis=-1)
 
         print(f"Test Predictions: {test_predictions}")
         print(f"Truth: {test_targets[random_indices]}")
