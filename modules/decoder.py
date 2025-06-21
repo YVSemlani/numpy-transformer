@@ -7,16 +7,16 @@ from modules.ffn import FeedForward
 from modules.positional_encoding import PositionalEncoding
 
 class Decoder(Module):
-    def __init__(self, embedding_dim, num_layers, vocab_size, num_heads=1, debug=False):
+    def __init__(self, embedding_dim, num_layers, vocab_size, num_heads=1, debug=False, use_mask=False):
         self.embedding_dim = embedding_dim
         self.num_layers = num_layers
         self.debug = debug
-
+        self.use_mask = use_mask
         self.positional_encoding = PositionalEncoding(embedding_dim)
         
         self.layers = []
         for _ in range(num_layers):
-            self.layers.append(DecoderBlock(embedding_dim, num_heads, debug=debug))
+            self.layers.append(DecoderBlock(embedding_dim, num_heads, debug=debug, use_mask=use_mask))
 
     def forward(self, x, encoder_output):
         if self.debug:
@@ -58,16 +58,18 @@ class Decoder(Module):
             layer.update(lr)
 
 class DecoderBlock(Module):
-    def __init__(self, embedding_dim, num_heads, debug=False):
+    def __init__(self, embedding_dim, num_heads, debug=False, use_mask=False):
         self.embedding_dim = embedding_dim
         self.num_heads = num_heads
         self.debug = debug
+        self.use_mask = use_mask
 
         if num_heads == 1:
             self.masked_attention = SingleHeadAttention(embedding_dim)
             self.cross_attention = SingleHeadCrossAttention(embedding_dim)
         else:
-            self.masked_attention = MultiHeadAttention(embedding_dim, num_heads)
+            pass
+            # TO-DO: add multi-head masked attention
             # TO-DO: add multi-head cross attention
 
         # Create separate norm layers for each component
@@ -82,7 +84,10 @@ class DecoderBlock(Module):
     def forward(self, x, encoder_output):
         # create mask for masked attention
         seq_len = x.shape[1]
-        mask = np.triu(np.ones((seq_len, seq_len)) * -np.inf, k=1)
+        if self.use_mask:
+            mask = np.triu(np.ones((seq_len, seq_len)) * -np.inf, k=1)
+        else:
+            mask = np.zeros((seq_len, seq_len))
 
         if self.debug:
             print(f"         🎭 Masked attention input: {x.shape}")

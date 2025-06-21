@@ -6,7 +6,9 @@ class Embedding(Module):
         self.vocab_size = vocab_size
         self.embedding_dim = embedding_dim
         self.debug = debug
+
         # Scale embeddings by sqrt of embedding dimension
+        # prevents exploding gradients
         self.embedding_matrix = np.random.randn(vocab_size, embedding_dim) / np.sqrt(embedding_dim)
         
         # Store intermediate variables and gradients
@@ -15,6 +17,7 @@ class Embedding(Module):
 
     def forward(self, x, is_decoder=False):
         # Store input tokens for backward pass
+        # if we're in the decoder then store tokens as decoder tokens and vice versa for encoder
         if is_decoder:
             if self.debug:
                 print(f"      🎯 Decoder tokens: {x}")
@@ -23,14 +26,12 @@ class Embedding(Module):
             if self.debug:
                 print(f"      📝 Encoder tokens: {x}")
             self.intermediate_vars['encoder_tokens'] = x
+
         # takes tokens as input and looks up the embedding from the embedding matrix
+        # lookup table is functionally the same as a linear layer bc only the relevant token row is being used (thus only that row gets updated)
         return self.embedding_matrix[x]
     
     def backward(self, dLdY, is_decoder=False):
-        """
-        Compute gradients for embedding matrix with accumulation support.
-        dLdY: gradient from upstream (batch_size, seq_len, embedding_dim)
-        """ 
         if is_decoder:
             input_tokens = self.intermediate_vars['decoder_tokens']
             if self.debug:
@@ -40,7 +41,8 @@ class Embedding(Module):
             if self.debug:
                 print(f"      ⬅️  Computing encoder embedding gradients")
 
-        # Initialize gradients if not exists, otherwise we'll accumulate
+        # Initialize gradients wrt encoder outputs (bc they're used in the decoder cross attention) if they don't exist
+        # Otherwise accumulate current gradient with the previous gradients so all cross attention gradients eventually get back to the last encoder layer
         if 'dLdE' not in self.gradients:
             self.gradients['dLdE'] = np.zeros_like(self.embedding_matrix)
         
@@ -57,7 +59,6 @@ class Embedding(Module):
         return None
     
     def update(self, lr=1e-3):
-        """Update embedding matrix using computed gradients"""
         if self.debug:
             print(f"      🔄 Updating embeddings (lr={lr})")
         if 'dLdE' in self.gradients:

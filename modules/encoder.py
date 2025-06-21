@@ -66,7 +66,9 @@ class EncoderBlock(Module):
             self.attention = MultiHeadAttention(embedding_dim, num_heads)
 
         self.feed_forward = FeedForward(embedding_dim, embedding_dim, embedding_dim)
-        # Create separate norm layers for attention and FFN
+
+        # Create separate norm layers for post-attention and post-FFN
+        # Required bc each layer should have different learned gamma and beta params
         self.norm1 = LayerNormalization(embedding_dim)  # After attention
         self.norm2 = LayerNormalization(embedding_dim)  # After FFN
        

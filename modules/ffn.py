@@ -3,6 +3,8 @@ from modules.base import Module
 from modules.linear import LinearLayer
 from modules.activations import ReLU
     
+# bunch of linear layers and a relu :)
+# no comments bc all implementations are in linear.py and activations.py
 class FeedForward(Module):
     def __init__(self, input_dim, hidden_dim, output_dim):
         self.input_dim = input_dim

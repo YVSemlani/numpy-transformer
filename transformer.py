@@ -9,12 +9,12 @@ from modules.functions import Softmax
 
 
 class Transformer(Module):
-    def __init__(self, embedding_dim, num_layers, vocab_size, num_heads=1, debug=False):
+    def __init__(self, embedding_dim, num_layers, vocab_size, num_heads=1, debug=False, use_mask=False):
         self.debug = debug
         
         self.embedding = Embedding(vocab_size, embedding_dim, debug=debug)
         self.encoder = Encoder(embedding_dim, num_layers, vocab_size, num_heads, debug=debug)
-        self.decoder = Decoder(embedding_dim, num_layers, vocab_size, num_heads, debug=debug)
+        self.decoder = Decoder(embedding_dim, num_layers, vocab_size, num_heads, debug=debug, use_mask=use_mask)
         self.output_projection = LinearLayer(embedding_dim, vocab_size)
         self.softmax = Softmax()
         
@@ -108,7 +108,8 @@ class Transformer(Module):
         self.encoder.update(lr)
         self.decoder.update(lr)
         self.output_projection.update(lr)
-        # Note: softmax has no trainable parameters, so no update needed
+        # Note: softmax has no trainable parameters, so no update needed or possible
+
 
 
 

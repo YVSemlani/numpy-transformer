@@ -77,7 +77,7 @@ class SingleHeadAttention(Module):
         self.w_k.zero_grad()
         self.w_v.zero_grad()
 
-
+# TODO: implement this
 class MultiHeadAttention(Module):
     def __init__(self, hidden_dim, num_heads):
         self.hidden_dim = hidden_dim
@@ -153,6 +153,7 @@ class SingleHeadCrossAttention(Module):
         # Combine gradients for each input
         # x_1 receives gradients only from Q pathway (decoder)
         self.gradients['dLdX_1'] = dLdX_1_q
+        
         # x_2 receives gradients from both K and V pathways (encoder)
         self.gradients['dLdX_2'] = dLdX_2_k + dLdX_2_v
         
@@ -172,3 +173,15 @@ class SingleHeadCrossAttention(Module):
         self.w_q.zero_grad()
         self.w_k.zero_grad()
         self.w_v.zero_grad()
+
+# TODO: implement this
+class MultiHeadCrossAttention(Module):
+    def __init__(self, hidden_dim, num_heads):
+        self.hidden_dim = hidden_dim
+        self.num_heads = num_heads
+
+    def forward(self, x_1, x_2, mask=None):
+        return x_1
+    
+    def backward(self, x_1, x_2):
+        return x_1, x_2

@@ -1,5 +1,10 @@
 # Transformer in Numpy
 
+## To-Do:
+
+- Check whether cross attention is being done correctly (Q is encoder output and KV is decoder input)
+
+
 ## Project Structure
 
 
