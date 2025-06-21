@@ -3,7 +3,6 @@
 A basic but complete transformer architecture implementation built from scratch using only NumPy. I built this project to develop a deeper understanding of the transformer architecture by implementing every component without relying on deep learning frameworks and autograd libraries as a crutch.
 
 ## 🧠 Core Modules
----
 - **Transformer**: Main model class tying together encoder-decoder architecture
 - **Encoder/Decoder**: Multi-layer encoder and decoder stacks and their smaller encoder/decoder block components
 - **Attention Mechanisms**:
@@ -17,7 +16,6 @@ A basic but complete transformer architecture implementation built from scratch 
 - **Loss**: Cross-entropy loss with optimized processing
 
 ## 📁 Project Structure
---
 
 ```
 transformer-mlx/
@@ -44,7 +42,6 @@ transformer-mlx/
 ```
 
 ## ⚡ Optimal Model Hyper Parameters
----
 
 **Note**: These hyperparameters were chosen through trial and error. A Grid Search may yield better results.
 
@@ -55,7 +52,6 @@ transformer-mlx/
 - **Batch Size**: 16
 
 ## 🔧 Implementation Details
----
 
 - **Pure NumPy Implementation**: No PyTorch, TensorFlow, or other ML frameworks
 - **Complete Backpropagation**: Derived and manually implemented gradients for all components
@@ -65,7 +61,6 @@ transformer-mlx/
 - **Generation Modes**: Autoregressive and teacher-forcing (greedy) generation
 
 ## 🏋️ Training Task
----
 
 Trained and evaluated on a simplistic **copy task** where the model learns to reproduce input sequences:
 - Input: Random sequences of tokens
@@ -74,7 +69,6 @@ Trained and evaluated on a simplistic **copy task** where the model learns to re
 - Start token mechanism for proper decoder initialization
 
 ## 🚀 Usage
----
 
 ```python
 
@@ -84,7 +78,6 @@ python train.py
 
 
 ## 📊 Results
----
 
 The model successfully learns the copy task, demonstrating:
 - Proper gradient flow through all components
@@ -105,8 +98,6 @@ Training visualizations show convergence of both loss and accuracy metrics over 
 - [ ] Model scaling experiments
 - [ ] Performance optimizations
 - [ ] New components (e.g. activations, losses, normalization, etc.)
-
----
 
 ## 📧 Contact Information
 
