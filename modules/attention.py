@@ -100,15 +100,15 @@ class SingleHeadCrossAttention(Module):
         self.intermediate_vars = {}
         self.gradients = {}
 
-    def forward(self, x_1, x_2, mask=None):
+    def forward(self, decoder_input, encoder_output, mask=None):
         # Store inputs for backward pass
-        self.intermediate_vars['x_1'] = x_1
-        self.intermediate_vars['x_2'] = x_2
+        self.intermediate_vars['decoder_input'] = decoder_input
+        self.intermediate_vars['encoder_output'] = encoder_output
         
         # FIXED: Q from decoder (x_1), K and V from encoder (x_2)
-        self.intermediate_vars['q'] = self.w_q.forward(x_1) # decoder queries
-        self.intermediate_vars['k'] = self.w_k.forward(x_2) # encoder keys
-        self.intermediate_vars['v'] = self.w_v.forward(x_2) # encoder values
+        self.intermediate_vars['q'] = self.w_q.forward(decoder_input) # decoder queries
+        self.intermediate_vars['k'] = self.w_k.forward(encoder_output) # encoder keys
+        self.intermediate_vars['v'] = self.w_v.forward(encoder_output) # encoder values
         
         self.intermediate_vars['kv'] = self.intermediate_vars['q'] @ np.transpose(self.intermediate_vars['k'], (0, 2, 1))
         self.intermediate_vars['kv'] = self.intermediate_vars['kv'] / np.sqrt(self.hidden_dim)
@@ -143,18 +143,18 @@ class SingleHeadCrossAttention(Module):
         dLdK = dLdScores.transpose(0, 2, 1) @ self.intermediate_vars['q']
         
         # Get gradients from linear layers
-        # Q gradients flow back to x_1 (decoder input)
+        # Q gradients flow back to decoder input
         dLdX_1_q = self.w_q.backward(dLdQ)
         
-        # K and V gradients flow back to x_2 (encoder input)
+        # K and V gradients flow back to encoder output
         dLdX_2_k = self.w_k.backward(dLdK)
         dLdX_2_v = self.w_v.backward(dLdV)
         
         # Combine gradients for each input
-        # x_1 receives gradients only from Q pathway (decoder)
+        # decoder input receives gradients only from Q pathway (decoder)
         self.gradients['dLdX_1'] = dLdX_1_q
         
-        # x_2 receives gradients from both K and V pathways (encoder)
+        # encoder output receives gradients from both K and V pathways (encoder)
         self.gradients['dLdX_2'] = dLdX_2_k + dLdX_2_v
         
         # Return gradients for both inputs
@@ -180,8 +180,8 @@ class MultiHeadCrossAttention(Module):
         self.hidden_dim = hidden_dim
         self.num_heads = num_heads
 
-    def forward(self, x_1, x_2, mask=None):
-        return x_1
+    def forward(self, decoder_input, encoder_output, mask=None):
+        return decoder_input
     
-    def backward(self, x_1, x_2):
-        return x_1, x_2
+    def backward(self, decoder_input, encoder_output):
+        return decoder_input, encoder_output
