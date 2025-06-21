@@ -96,7 +96,6 @@ Training visualizations show convergence of both loss and accuracy metrics over 
 - [ ] More complex training tasks
 - [ ] Optimization algorithms (Adam, etc.)
 - [ ] Model scaling experiments
-- [ ] Performance optimizations
 - [ ] New components (e.g. activations, losses, normalization, etc.)
 
 ## 📧 Contact Information
